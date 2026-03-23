@@ -1,58 +1,220 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistem Informasi Garmen
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi ini adalah sistem informasi garmen berbasis Laravel untuk mengelola:
 
-## About Laravel
+- User, roles, dan permissions
+- Supplier
+- Raw material
+- Product dan komposisi bahan baku
+- Transaksi pembelian bahan baku
+- Transaksi produksi product
+- Transaksi penjualan product
+- Dashboard admin berbasis TailAdmin
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP
+- Laravel 13
+- MySQL
+- Laravel Breeze
+- TailAdmin
+- Tailwind CSS
+- Alpine.js
+- Vite
+- Spatie Laravel Permission
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Requirements
 
-## Learning Laravel
+Sebelum install, pastikan environment kamu minimal punya:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- PHP `8.3+`
+- PHP `8.4` direkomendasikan karena project ini sudah dites di PHP 8.4
+- Composer `2+`
+- Node.js `20+`
+- NPM `10+`
+- MySQL / MariaDB
+- Git
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+PHP extension yang umumnya perlu aktif:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- `bcmath`
+- `ctype`
+- `fileinfo`
+- `json`
+- `mbstring`
+- `openssl`
+- `pdo`
+- `pdo_mysql`
+- `tokenizer`
+- `xml`
 
-## Agentic Development
+## Instalasi
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+1. Clone repository
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/konsultasiskripsiti/sistem-informasi-garmen.git
+cd sistem-informasi-garmen
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+2. Install dependency PHP
 
-## Contributing
+```bash
+composer install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+3. Install dependency frontend
 
-## Code of Conduct
+```bash
+npm install
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+4. Copy file environment
 
-## Security Vulnerabilities
+```bash
+cp .env.example .env
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+5. Atur konfigurasi database di file `.env`
 
-## License
+Contoh:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=post_new2
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+6. Generate application key
+
+```bash
+php artisan key:generate
+```
+
+7. Jalankan migration
+
+```bash
+php artisan migrate
+```
+
+8. Jalankan seeder
+
+```bash
+php artisan db:seed
+```
+
+9. Jalankan Vite dev server
+
+```bash
+npm run dev
+```
+
+10. Jalankan Laravel server
+
+```bash
+php artisan serve
+```
+
+Setelah itu aplikasi bisa diakses di:
+
+```txt
+http://127.0.0.1:8000
+```
+
+## Instalasi Cepat
+
+Kalau mau lebih cepat, kamu bisa pakai script bawaan Composer:
+
+```bash
+composer run setup
+```
+
+Lalu lanjutkan:
+
+```bash
+php artisan db:seed
+npm run dev
+php artisan serve
+```
+
+Catatan:
+
+- `composer run setup` akan install dependency, copy `.env`, generate key, migrate database, install npm package, dan build asset.
+- Seeder tetap dijalankan manual supaya data awal seperti roles, permissions, supplier, raw material, product, production, dan sales ikut terisi.
+
+## Akun Login Default
+
+Setelah menjalankan seeder, akun default yang bisa dipakai:
+
+- Email: `test@example.com`
+- Password: `password`
+
+Seeder juga akan membuat data contoh untuk:
+
+- Roles dan permissions
+- User dummy
+- Supplier
+- Raw material
+- Product
+- Production
+- Sales
+- Notification
+
+## Menjalankan Test
+
+```bash
+php artisan test
+```
+
+## Build Asset Production
+
+```bash
+npm run build
+```
+
+## Struktur Modul Utama
+
+Modul yang saat ini sudah tersedia:
+
+- Dashboard
+- User Management
+- Master Data Supplier
+- Master Data Raw Material
+- Master Data Product
+- Pembelian Bahan Baku
+- Produksi Product
+- Penjualan Product
+
+## Catatan Penting
+
+- Pastikan database sudah dibuat terlebih dahulu sebelum menjalankan `php artisan migrate`
+- Jika tampilan frontend tidak muncul dengan benar, pastikan `npm run dev` sedang berjalan
+- Jika menggunakan PHP 8.3 dan menemui masalah dependency Composer, gunakan PHP 8.4
+- Beberapa transaksi memengaruhi stok secara otomatis:
+  - pembelian menambah stok raw material
+  - produksi mengurangi stok raw material dan menambah stok product
+  - penjualan mengurangi stok product
+
+## Perintah Ringkas
+
+Untuk development harian:
+
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed
+npm run dev
+php artisan serve
+```
+
+## Repository
+
+Repository project:
+
+`https://github.com/konsultasiskripsiti/sistem-informasi-garmen`
