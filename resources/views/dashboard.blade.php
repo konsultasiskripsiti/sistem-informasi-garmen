@@ -1,17 +1,36 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
+                    Dashboard
+                </h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Welcome back, {{ Auth::user()->name }}. TailAdmin is now active in your Laravel project.
+                </p>
+            </div>
+            <span class="inline-flex w-fit items-center rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                TailAdmin + Breeze
+            </span>
+        </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    {{ __("You're logged in!") }}
-                </div>
-            </div>
+    <div class="grid grid-cols-12 gap-4 md:gap-6">
+        <div class="col-span-12 space-y-6 xl:col-span-7">
+            <x-ecommerce.ecommerce-metrics />
+            <x-ecommerce.monthly-sale />
+        </div>
+        <div class="col-span-12 xl:col-span-5">
+            <x-ecommerce.monthly-target />
+        </div>
+        <div class="col-span-12">
+            <x-ecommerce.statistics-chart />
+        </div>
+        <div class="col-span-12 xl:col-span-5">
+            <x-ecommerce.customer-demographic />
+        </div>
+        <div class="col-span-12 xl:col-span-7">
+            <x-ecommerce.recent-orders />
         </div>
     </div>
 </x-app-layout>
