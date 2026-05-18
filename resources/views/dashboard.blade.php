@@ -5,9 +5,20 @@
                 <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">Dashboard</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Pantau penjualan, pembelian, produksi, dan posisi stok gudang.</p>
             </div>
-            <div class="inline-flex w-fit items-center rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
-                {{ $periodLabel }}
-            </div>
+            <form method="GET" action="{{ route('dashboard') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div>
+                    <label for="date_from" class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">From</label>
+                    <input id="date_from" name="date_from" type="date" value="{{ $dateFrom }}" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:w-40">
+                </div>
+                <div>
+                    <label for="date_to" class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">To</label>
+                    <input id="date_to" name="date_to" type="date" value="{{ $dateTo }}" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:w-40">
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">Filter</button>
+                    <a href="{{ route('dashboard') }}" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300">Reset</a>
+                </div>
+            </form>
         </div>
     </x-slot>
 
@@ -20,21 +31,21 @@
                 'icon_class' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400',
             ],
             [
-                'label' => 'Penjualan Bulan Ini',
-                'value' => 'Rp'.number_format($metrics['sales_this_month'], 0, ',', '.'),
-                'caption' => 'Akumulasi penjualan bulan berjalan',
+                'label' => 'Penjualan Periode',
+                'value' => 'Rp'.number_format($metrics['sales_in_period'], 0, ',', '.'),
+                'caption' => 'Akumulasi penjualan sesuai filter',
                 'icon_class' => 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400',
             ],
             [
-                'label' => 'Pembelian Bulan Ini',
-                'value' => 'Rp'.number_format($metrics['purchases_this_month'], 0, ',', '.'),
-                'caption' => 'Akumulasi pembelian raw material',
+                'label' => 'Pembelian Periode',
+                'value' => 'Rp'.number_format($metrics['purchases_in_period'], 0, ',', '.'),
+                'caption' => 'Akumulasi pembelian sesuai filter',
                 'icon_class' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
             ],
             [
-                'label' => 'Produksi Bulan Ini',
-                'value' => number_format($metrics['productions_this_month']).' Pcs',
-                'caption' => 'Total product masuk stok',
+                'label' => 'Produksi Periode',
+                'value' => number_format($metrics['productions_in_period']).' Pcs',
+                'caption' => 'Total product masuk stok sesuai filter',
                 'icon_class' => 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
             ],
         ];
@@ -175,7 +186,8 @@
 
     <div class="mt-4 grid gap-4 xl:grid-cols-2">
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Top Product Terjual Bulan Ini</h2>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Top Product Terjual</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $periodLabel }}</p>
             <div class="mt-4 space-y-3">
                 @forelse ($topProducts as $product)
                     <div class="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800">
@@ -186,13 +198,14 @@
                         <p class="font-semibold text-gray-800 dark:text-white/90">{{ number_format($product->total_quantity) }} Pcs</p>
                     </div>
                 @empty
-                    <p class="text-sm text-gray-400">Belum ada penjualan bulan ini.</p>
+                    <p class="text-sm text-gray-400">Belum ada penjualan pada periode ini.</p>
                 @endforelse
             </div>
         </div>
 
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Pemakaian Bahan Baku Bulan Ini</h2>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Pemakaian Bahan Baku</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $periodLabel }}</p>
             <div class="mt-4 space-y-3">
                 @forelse ($rawMaterialUsage as $material)
                     <div class="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800">
@@ -200,7 +213,7 @@
                         <p class="font-semibold text-gray-800 dark:text-white/90">{{ number_format((float) $material->total_quantity, 2) }} {{ $material->unit }}</p>
                     </div>
                 @empty
-                    <p class="text-sm text-gray-400">Belum ada pemakaian bahan bulan ini.</p>
+                    <p class="text-sm text-gray-400">Belum ada pemakaian bahan pada periode ini.</p>
                 @endforelse
             </div>
         </div>

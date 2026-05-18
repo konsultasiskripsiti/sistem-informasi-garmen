@@ -22,28 +22,40 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
+Route::get('/dashboard', function (Request $request) {
     $today = now()->toDateString();
-    $monthStart = now()->startOfMonth()->toDateString();
-    $monthEnd = now()->endOfMonth()->toDateString();
+    $dateFrom = (string) $request->string('date_from', now()->startOfMonth()->toDateString());
+    $dateTo = (string) $request->string('date_to', now()->endOfMonth()->toDateString());
+
+    if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+        $dateFrom = now()->startOfMonth()->toDateString();
+    }
+
+    if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+        $dateTo = now()->endOfMonth()->toDateString();
+    }
+
+    if ($dateFrom > $dateTo) {
+        [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+    }
 
     $salesToday = Sale::query()
         ->whereDate('sale_date', $today)
         ->sum('total_amount');
-    $salesThisMonth = Sale::query()
-        ->whereBetween('sale_date', [$monthStart, $monthEnd])
+    $salesInPeriod = Sale::query()
+        ->whereBetween('sale_date', [$dateFrom, $dateTo])
         ->sum('total_amount');
-    $purchasesThisMonth = Purchase::query()
-        ->whereBetween('purchase_date', [$monthStart, $monthEnd])
+    $purchasesInPeriod = Purchase::query()
+        ->whereBetween('purchase_date', [$dateFrom, $dateTo])
         ->sum('total_amount');
-    $productionsThisMonth = Production::query()
-        ->whereBetween('production_date', [$monthStart, $monthEnd])
+    $productionsInPeriod = Production::query()
+        ->whereBetween('production_date', [$dateFrom, $dateTo])
         ->sum('production_quantity');
 
     $topProducts = DB::table('sale_items')
         ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
         ->join('products', 'products.id', '=', 'sale_items.product_id')
-        ->whereBetween('sales.sale_date', [$monthStart, $monthEnd])
+        ->whereBetween('sales.sale_date', [$dateFrom, $dateTo])
         ->select(
             'products.name',
             'products.size',
@@ -58,7 +70,7 @@ Route::get('/dashboard', function () {
     $rawMaterialUsage = DB::table('production_items')
         ->join('productions', 'productions.id', '=', 'production_items.production_id')
         ->join('raw_materials', 'raw_materials.id', '=', 'production_items.raw_material_id')
-        ->whereBetween('productions.production_date', [$monthStart, $monthEnd])
+        ->whereBetween('productions.production_date', [$dateFrom, $dateTo])
         ->select(
             'raw_materials.name',
             'raw_materials.unit',
@@ -70,24 +82,28 @@ Route::get('/dashboard', function () {
         ->get();
 
     return view('dashboard', [
-        'periodLabel' => now()->translatedFormat('F Y'),
+        'periodLabel' => \Illuminate\Support\Carbon::parse($dateFrom)->format('d M Y').' - '.\Illuminate\Support\Carbon::parse($dateTo)->format('d M Y'),
+        'dateFrom' => $dateFrom,
+        'dateTo' => $dateTo,
         'metrics' => [
             'sales_today' => $salesToday,
-            'sales_this_month' => $salesThisMonth,
-            'purchases_this_month' => $purchasesThisMonth,
-            'productions_this_month' => $productionsThisMonth,
+            'sales_in_period' => $salesInPeriod,
+            'purchases_in_period' => $purchasesInPeriod,
+            'productions_in_period' => $productionsInPeriod,
             'raw_material_stock' => RawMaterial::sum('quantity'),
             'product_stock' => Product::sum('stock_quantity'),
             'low_raw_materials_count' => RawMaterial::where('quantity', '<=', 10)->count(),
             'low_products_count' => Product::where('stock_quantity', '<=', 5)->count(),
         ],
         'recentSales' => Sale::query()
+            ->whereBetween('sale_date', [$dateFrom, $dateTo])
             ->latest('sale_date')
             ->latest()
             ->limit(5)
             ->get(),
         'recentPurchases' => Purchase::query()
             ->with('supplier')
+            ->whereBetween('purchase_date', [$dateFrom, $dateTo])
             ->latest('purchase_date')
             ->latest()
             ->limit(5)
