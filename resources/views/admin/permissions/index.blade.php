@@ -21,8 +21,13 @@
                 <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">Permissions</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Daftar permission dengan pencarian, pagination, dan aksi massal.</p>
             </div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">
-                Total: {{ $permissions->total() }} permissions
+            <div class="flex items-center gap-3">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    Total: {{ $permissions->total() }} permissions
+                </div>
+                <a href="{{ route('permissions.create') }}" class="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">
+                    Add Permission
+                </a>
             </div>
         </div>
     </x-slot>

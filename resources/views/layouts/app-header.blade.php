@@ -78,7 +78,7 @@
                                     fill="" />
                             </svg>
                         </span>
-                        <input type="text" placeholder="Search dashboard..."
+                        <input type="text" placeholder="{{ __('app.search_dashboard') }}"
                             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-white/3 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]" />
                         <button
                             class="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
@@ -111,6 +111,40 @@
                             fill="currentColor" />
                     </svg>
                 </button>
+
+                @php
+                    $currentLocale = app()->getLocale();
+                    $localeOptions = [
+                        'id' => ['flag' => '🇮🇩', 'label' => __('app.languages.id')],
+                        'en' => ['flag' => '🇬🇧', 'label' => __('app.languages.en')],
+                    ];
+                @endphp
+
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button
+                        type="button"
+                        class="relative flex h-11 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+                        @click="open = !open"
+                        aria-label="{{ __('app.language') }}">
+                        <span class="text-lg leading-none">{{ $localeOptions[$currentLocale]['flag'] ?? $localeOptions['en']['flag'] }}</span>
+                        <span class="hidden text-xs uppercase sm:inline">{{ $currentLocale }}</span>
+                    </button>
+
+                    <div
+                        x-show="open"
+                        x-transition
+                        class="absolute right-0 z-99999 mt-2 w-44 rounded-xl border border-gray-200 bg-white p-2 shadow-theme-lg dark:border-gray-800 dark:bg-gray-900"
+                        style="display: none;">
+                        @foreach ($localeOptions as $locale => $option)
+                            <a
+                                href="{{ route('language.switch', $locale) }}"
+                                class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-gray-50 dark:hover:bg-white/[0.03] {{ $currentLocale === $locale ? 'text-brand-600 dark:text-brand-400' : 'text-gray-700 dark:text-gray-300' }}">
+                                <span class="text-lg leading-none">{{ $option['flag'] }}</span>
+                                <span>{{ $option['label'] }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
 
                 <!-- Notification Dropdown OFF-->
                  {{-- <x-header.notification-dropdown /> --}}

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $reportLabel ?: 'Laporan' }}</title>
+    <title>{{ $reportLabel ?: __('app.reports.title') }}</title>
     <style>
         body {
             color: #111827;
@@ -69,38 +69,16 @@
             color: #374151;
         }
 
-        .actions {
-            margin-bottom: 18px;
-        }
-
-        button {
-            background: #465fff;
-            border: 0;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            font-size: 13px;
-            padding: 9px 14px;
-        }
-
         @media print {
             body {
                 margin: 16px;
-            }
-
-            .actions {
-                display: none;
             }
         }
     </style>
 </head>
 <body>
-    <div class="actions">
-        <button type="button" onclick="window.print()">Print</button>
-    </div>
-
-    <h1>{{ $reportLabel ?: 'Laporan' }}</h1>
-    <p class="meta">Periode {{ $dateFrom ?: 'awal data' }} sampai {{ $dateTo ?: 'akhir data' }}</p>
+    <h1>{{ $reportLabel ?: __('app.reports.title') }}</h1>
+    <p class="meta">{{ __('app.reports.period') }} {{ $dateFrom ?: __('app.reports.start_data') }} - {{ $dateTo ?: __('app.reports.end_data') }}</p>
 
     <div class="summary">
         @foreach ($summary as $label => $value)
@@ -128,7 +106,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ max(count($table['headers']), 1) }}">Tidak ada data laporan.</td>
+                    <td colspan="{{ max(count($table['headers']), 1) }}">{{ __('app.common.empty_report') }}</td>
                 </tr>
             @endforelse
         </tbody>

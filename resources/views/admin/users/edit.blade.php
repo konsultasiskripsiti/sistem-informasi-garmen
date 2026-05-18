@@ -34,6 +34,22 @@
                 </div>
             </div>
 
+            <div class="grid gap-5 md:grid-cols-2">
+                <div>
+                    <label for="password" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
+                    <input id="password" name="password" type="password" class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                    <p class="mt-2 text-xs text-gray-400">Kosongkan jika tidak ingin mengubah password.</p>
+                    @error('password')
+                        <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="password_confirmation" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm New Password</label>
+                    <input id="password_confirmation" name="password_confirmation" type="password" class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                </div>
+            </div>
+
             <div>
                 <p class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Roles</p>
                 <div class="grid gap-3 md:grid-cols-3">

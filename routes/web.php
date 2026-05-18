@@ -13,14 +13,25 @@ use App\Models\User;
 use App\Support\ReportBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/language/{locale}', function (string $locale) {
+    abort_unless(array_key_exists($locale, config('laravellocalization.supportedLocales', [])), 404);
+
+    session(['locale' => $locale]);
+    app()->setLocale($locale);
+
+    return back();
+})->name('language.switch');
 
 Route::get('/dashboard', function (Request $request) {
     $today = now()->toDateString();
@@ -236,6 +247,34 @@ Route::middleware('auth')->group(function () {
         ]);
     })->middleware('can:users.view')->name('users.index');
 
+    Route::get('/users/create', function () {
+        return view('admin.users.create', [
+            'roles' => Role::orderBy('name')->get(),
+        ]);
+    })->middleware('can:users.view')->name('users.create');
+
+    Route::post('/users', function (Request $request) {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['exists:roles,name'],
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        $user->syncRoles($validated['roles'] ?? []);
+
+        return redirect()
+            ->route('users.index')
+            ->with('status', 'User created successfully.');
+    })->middleware('can:users.view')->name('users.store');
+
     Route::get('/users/{user}', function (User $user) {
         $user->load('roles');
 
@@ -257,14 +296,21 @@ Route::middleware('auth')->group(function () {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['exists:roles,name'],
         ]);
 
-        $user->update([
+        $payload = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-        ]);
+        ];
+
+        if (! empty($validated['password'])) {
+            $payload['password'] = Hash::make($validated['password']);
+        }
+
+        $user->update($payload);
 
         $user->syncRoles($validated['roles'] ?? []);
 
@@ -1461,6 +1507,32 @@ Route::middleware('auth')->group(function () {
         ]);
     })->middleware('can:roles.view')->name('roles.index');
 
+    Route::get('/user-roles/create', function () {
+        return view('admin.roles.create', [
+            'permissions' => Permission::orderBy('name')->get(),
+        ]);
+    })->middleware('can:roles.view')->name('roles.create');
+
+    Route::post('/user-roles', function (Request $request) {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['exists:permissions,name'],
+        ]);
+
+        $role = Role::create([
+            'name' => $validated['name'],
+            'guard_name' => 'web',
+        ]);
+
+        $role->syncPermissions($validated['permissions'] ?? []);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return redirect()
+            ->route('roles.index')
+            ->with('status', 'Role created successfully.');
+    })->middleware('can:roles.view')->name('roles.store');
+
     Route::get('/user-roles/{role}', function (Role $role) {
         $role->load('permissions');
 
@@ -1488,6 +1560,7 @@ Route::middleware('auth')->group(function () {
         ]);
 
         $role->syncPermissions($validated['permissions'] ?? []);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return redirect()
             ->route('roles.index')
@@ -1502,6 +1575,7 @@ Route::middleware('auth')->group(function () {
         }
 
         $role->delete();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return redirect()
             ->route('roles.index')
@@ -1517,6 +1591,7 @@ Route::middleware('auth')->group(function () {
         Role::whereIn('id', collect($validated['role_ids'])->values())
             ->where('name', '!=', 'super-admin')
             ->delete();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return redirect()
             ->route('roles.index')
@@ -1550,6 +1625,26 @@ Route::middleware('auth')->group(function () {
         ]);
     })->middleware('can:permissions.view')->name('permissions.index');
 
+    Route::get('/user-permissions/create', function () {
+        return view('admin.permissions.create');
+    })->middleware('can:permissions.view')->name('permissions.create');
+
+    Route::post('/user-permissions', function (Request $request) {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:permissions,name'],
+        ]);
+
+        Permission::create([
+            'name' => $validated['name'],
+            'guard_name' => 'web',
+        ]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return redirect()
+            ->route('permissions.index')
+            ->with('status', 'Permission created successfully.');
+    })->middleware('can:permissions.view')->name('permissions.store');
+
     Route::get('/user-permissions/{permission}', function (Permission $permission) {
         return view('admin.permissions.show', [
             'permission' => $permission,
@@ -1570,6 +1665,7 @@ Route::middleware('auth')->group(function () {
         $permission->update([
             'name' => $validated['name'],
         ]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return redirect()
             ->route('permissions.index')
@@ -1578,6 +1674,7 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/user-permissions/{permission}', function (Permission $permission) {
         $permission->delete();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return redirect()
             ->route('permissions.index')
@@ -1591,6 +1688,7 @@ Route::middleware('auth')->group(function () {
         ]);
 
         Permission::whereIn('id', $validated['permission_ids'])->delete();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return redirect()
             ->route('permissions.index')

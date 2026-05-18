@@ -15,11 +15,11 @@ class ReportBuilder
     public static function types(): array
     {
         return [
-            'raw-material-purchases' => 'Pembelian Raw Material',
-            'product-productions' => 'Produksi Product',
-            'product-sales' => 'Penjualan Product',
-            'raw-material-stocks' => 'Stok Bahan baku',
-            'product-stocks' => 'Stok Product',
+            'raw-material-purchases' => __('app.reports.types.raw-material-purchases'),
+            'product-productions' => __('app.reports.types.product-productions'),
+            'product-sales' => __('app.reports.types.product-sales'),
+            'raw-material-stocks' => __('app.reports.types.raw-material-stocks'),
+            'product-stocks' => __('app.reports.types.product-stocks'),
         ];
     }
 

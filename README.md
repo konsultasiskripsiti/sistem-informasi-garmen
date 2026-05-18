@@ -24,6 +24,7 @@ Aplikasi ini adalah sistem informasi garmen berbasis Laravel untuk mengelola:
 - Alpine.js
 - Vite
 - Spatie Laravel Permission
+- Laravel Localization (`mcamara/laravel-localization`)
 
 ## Requirements
 
@@ -197,6 +198,7 @@ npm run build
 Modul yang saat ini sudah tersedia:
 
 - Dashboard monitoring penjualan, pembelian, produksi, dan stok
+- Multi bahasa Indonesia dan English dengan tombol switch bahasa di header
 - User Management
 - Master Data Supplier
 - Master Data Raw Material

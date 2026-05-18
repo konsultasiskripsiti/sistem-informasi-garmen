@@ -21,8 +21,13 @@
                 <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">Roles</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Daftar role dengan pencarian, pagination, dan aksi massal.</p>
             </div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">
-                Total: {{ $roles->total() }} roles
+            <div class="flex items-center gap-3">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    Total: {{ $roles->total() }} roles
+                </div>
+                <a href="{{ route('roles.create') }}" class="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">
+                    Add Role
+                </a>
             </div>
         </div>
     </x-slot>

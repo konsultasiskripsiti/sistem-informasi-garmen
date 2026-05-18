@@ -10,89 +10,89 @@ class MenuHelper
 
         $groups = [
             [
-                'title' => 'Main',
+                'title' => __('app.nav.main'),
                 'items' => array_values(array_filter([
                     $user?->can('dashboard.view') ? [
                         'icon' => 'dashboard',
-                        'name' => 'Dashboard',
+                        'name' => __('app.nav.dashboard'),
                         'path' => route('dashboard'),
                     ] : null,
                 ])),
             ],
             [
-                'title' => 'Menu',
+                'title' => __('app.nav.menu'),
                 'items' => [
                     [
                         'icon' => 'user-management',
-                        'name' => 'User Management',
+                        'name' => __('app.nav.user_management'),
                         'subItems' => array_values(array_filter([
                             $user?->can('permissions.view') ? [
-                                'name' => 'User Permissions',
+                                'name' => __('app.nav.user_permissions'),
                                 'path' => route('permissions.index'),
                             ] : null,
                             $user?->can('roles.view') ? [
-                                'name' => 'User Roles',
+                                'name' => __('app.nav.user_roles'),
                                 'path' => route('roles.index'),
                             ] : null,
                             $user?->can('users.view') ? [
-                                'name' => 'User Lists',
+                                'name' => __('app.nav.user_lists'),
                                 'path' => route('users.index'),
                             ] : null,
                         ])),
                     ],
                     [
                        'icon' => 'master-data',
-                        'name' => 'Master Data',
+                        'name' => __('app.nav.master_data'),
                         'subItems' => [
                             [
-                                'name' => 'Supplier',
+                                'name' => __('app.nav.supplier'),
                                 'path' => route('suppliers.index'),
                             ],
                             [
-                                'name' => 'Raw Materials',
+                                'name' => __('app.nav.raw_materials'),
                                 'path' => route('raw-materials.index'),
                             ],
                             [
-                                'name' => 'Product',
+                                'name' => __('app.nav.product'),
                                 'path' => route('products.index'),
                             ],
                         ],
                     ],
                     [
                        'icon' => 'transactions',
-                        'name' => 'Transactions',
+                        'name' => __('app.nav.transactions'),
                         'subItems' => [
                             [
-                                'name' => 'Pembelian Bahan Baku',
+                                'name' => __('app.nav.raw_material_purchases'),
                                 'path' => route('purchases.index'),
                             ],
                             [
-                                'name' => 'Produksi Product',
+                                'name' => __('app.nav.product_productions'),
                                 'path' => route('productions.index'),
                             ],
                             [
-                                'name' => 'Penjualan Product',
+                                'name' => __('app.nav.product_sales'),
                                 'path' => route('sales.index'),
                             ],
                         ],
                     ],
                     [
                        'icon' => 'stock-opname',
-                        'name' => 'Stok Opname',
+                        'name' => __('app.nav.stock_opname'),
                         'subItems' => [
                             [
-                                'name' => 'Bahan Baku',
+                                'name' => __('app.nav.raw_material'),
                                 'path' => route('stock-opname.raw-materials'),
                             ],
                             [
-                                'name' => 'Product',
+                                'name' => __('app.nav.product'),
                                 'path' => route('stock-opname.products'),
                             ],
                         ],
                     ],
                     [
                        'icon' => 'reports',
-                        'name' => 'Laporan',
+                        'name' => __('app.nav.reports'),
                         'path' => route('reports.index'),
                     ],
                 ],
