@@ -134,6 +134,7 @@
                             <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ $product->name }}</h3>
                             <div class="mt-2 flex flex-wrap gap-2">
                                 <span class="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">{{ $product->size }}</span>
+                                <span class="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-600 dark:bg-green-500/10 dark:text-green-400">Stok: {{ number_format($product->stock_quantity) }}</span>
                                 <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ $product->unit }}</span>
                             </div>
                             <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Harga: Rp{{ number_format($product->unit_price, 0, ',', '.') }}</p>
@@ -168,6 +169,7 @@
                             </th>
                             <th class="px-5 py-3 text-left sm:px-6"><a href="{{ $sortUrl('name') }}" class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Product {{ $sortIcon('name') }}</a></th>
                             <th class="px-5 py-3 text-left sm:px-6"><a href="{{ $sortUrl('size') }}" class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Ukuran {{ $sortIcon('size') }}</a></th>
+                            <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Stok</p></th>
                             <th class="px-5 py-3 text-left sm:px-6"><a href="{{ $sortUrl('unit') }}" class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Satuan {{ $sortIcon('unit') }}</a></th>
                             <th class="px-5 py-3 text-left sm:px-6"><a href="{{ $sortUrl('unit_price') }}" class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Harga Satuan {{ $sortIcon('unit_price') }}</a></th>
                             <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Bahan Baku</p></th>
@@ -195,6 +197,9 @@
                                 </td>
                                 <td class="px-5 py-4 sm:px-6">
                                     <span class="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">{{ $product->size }}</span>
+                                </td>
+                                <td class="px-5 py-4 sm:px-6">
+                                    <p class="font-medium text-gray-700 text-theme-sm dark:text-gray-300">{{ number_format($product->stock_quantity) }}</p>
                                 </td>
                                 <td class="px-5 py-4 sm:px-6">
                                     <p class="text-gray-500 text-theme-sm dark:text-gray-400">{{ $product->unit }}</p>
@@ -236,7 +241,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-5 py-10 text-center text-gray-400 sm:px-6">Belum ada product.</td>
+                                <td colspan="8" class="px-5 py-10 text-center text-gray-400 sm:px-6">Belum ada product.</td>
                             </tr>
                         @endforelse
                     </tbody>

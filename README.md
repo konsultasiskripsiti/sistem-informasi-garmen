@@ -9,7 +9,9 @@ Aplikasi ini adalah sistem informasi garmen berbasis Laravel untuk mengelola:
 - Transaksi pembelian bahan baku
 - Transaksi produksi product
 - Transaksi penjualan product
-- Dashboard admin berbasis TailAdmin
+- Stok opname raw material dan product
+- Laporan terpusat dengan filter periode, view report, CSV, dan PDF
+- Dashboard monitoring penjualan, pembelian, produksi, dan stok
 
 ## Tech Stack
 
@@ -163,6 +165,21 @@ Seeder juga akan membuat data contoh untuk:
 - Sales
 - Notification
 
+## Update Database
+
+Jika menarik versi terbaru dari repository yang sudah pernah di-install sebelumnya, jalankan migration terbaru:
+
+```bash
+php artisan migrate
+```
+
+Migration terbaru menambahkan tabel histori:
+
+- `raw_material_stock_opnames`
+- `product_stock_opnames`
+
+Tabel ini dipakai untuk menyimpan audit trail stok opname bahan baku dan product.
+
 ## Menjalankan Test
 
 ```bash
@@ -179,7 +196,7 @@ npm run build
 
 Modul yang saat ini sudah tersedia:
 
-- Dashboard
+- Dashboard monitoring penjualan, pembelian, produksi, dan stok
 - User Management
 - Master Data Supplier
 - Master Data Raw Material
@@ -187,16 +204,27 @@ Modul yang saat ini sudah tersedia:
 - Pembelian Bahan Baku
 - Produksi Product
 - Penjualan Product
+- Stok Opname Bahan Baku
+- Stok Opname Product
+- Laporan:
+  - Pembelian Raw Material
+  - Produksi Product
+  - Penjualan Product
+  - Stok Bahan Baku
+  - Stok Product
 
 ## Catatan Penting
 
 - Pastikan database sudah dibuat terlebih dahulu sebelum menjalankan `php artisan migrate`
 - Jika tampilan frontend tidak muncul dengan benar, pastikan `npm run dev` sedang berjalan
+- Jika perubahan CSS/JS tidak muncul setelah pull, jalankan `npm install` lalu `npm run build` atau `npm run dev`
 - Jika menggunakan PHP 8.3 dan menemui masalah dependency Composer, gunakan PHP 8.4
 - Beberapa transaksi memengaruhi stok secara otomatis:
   - pembelian menambah stok raw material
   - produksi mengurangi stok raw material dan menambah stok product
   - penjualan mengurangi stok product
+- Stok opname akan menyimpan histori koreksi dan memperbarui stok sistem ke hasil hitung fisik
+- Fitur laporan mendukung preview report, download CSV, dan download PDF sederhana tanpa package PDF tambahan
 
 ## Perintah Ringkas
 

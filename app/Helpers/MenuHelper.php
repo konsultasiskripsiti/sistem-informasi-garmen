@@ -93,28 +93,7 @@ class MenuHelper
                     [
                        'icon' => 'reports',
                         'name' => 'Laporan',
-                        'subItems' => [
-                            [
-                                'name' => 'Pembelian Bahan Baku',
-                                'path' => route('reports.purchases'),
-                            ],
-                            [
-                                'name' => 'Produksi Product',
-                                'path' => route('reports.productions'),
-                            ],
-                            [
-                                'name' => 'Penjualan Product',
-                                'path' => route('reports.sales'),
-                            ],
-                            [
-                                'name' => 'Stok Bahan Baku',
-                                'path' => route('reports.raw-material-stocks'),
-                            ],
-                            [
-                                'name' => 'Stok Product',
-                                'path' => route('reports.product-stocks'),
-                            ],
-                        ],
+                        'path' => route('reports.index'),
                     ],
                 ],
             ],

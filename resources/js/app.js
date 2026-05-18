@@ -37,4 +37,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         table.dataset.datatableInitialized = 'true';
     });
+
+    document.querySelectorAll('input[type="date"]').forEach((input) => {
+        if (input.dataset.datePickerInitialized === 'true') {
+            return;
+        }
+
+        const openPicker = () => {
+            if (typeof input.showPicker === 'function') {
+                input.showPicker();
+            }
+        };
+
+        input.addEventListener('focus', openPicker);
+        input.addEventListener('click', openPicker);
+        input.dataset.datePickerInitialized = 'true';
+    });
 });

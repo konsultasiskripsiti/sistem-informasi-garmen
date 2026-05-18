@@ -44,4 +44,9 @@ class RawMaterial extends Model
     {
         return $this->hasMany(ProductionItem::class);
     }
+
+    public function stockOpnames(): HasMany
+    {
+        return $this->hasMany(RawMaterialStockOpname::class);
+    }
 }

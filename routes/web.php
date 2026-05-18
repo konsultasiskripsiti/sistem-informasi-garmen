@@ -2,12 +2,15 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Models\Product;
+use App\Models\ProductStockOpname;
 use App\Models\Purchase;
 use App\Models\Production;
 use App\Models\RawMaterial;
+use App\Models\RawMaterialStockOpname;
 use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Support\ReportBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -20,7 +23,86 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $today = now()->toDateString();
+    $monthStart = now()->startOfMonth()->toDateString();
+    $monthEnd = now()->endOfMonth()->toDateString();
+
+    $salesToday = Sale::query()
+        ->whereDate('sale_date', $today)
+        ->sum('total_amount');
+    $salesThisMonth = Sale::query()
+        ->whereBetween('sale_date', [$monthStart, $monthEnd])
+        ->sum('total_amount');
+    $purchasesThisMonth = Purchase::query()
+        ->whereBetween('purchase_date', [$monthStart, $monthEnd])
+        ->sum('total_amount');
+    $productionsThisMonth = Production::query()
+        ->whereBetween('production_date', [$monthStart, $monthEnd])
+        ->sum('production_quantity');
+
+    $topProducts = DB::table('sale_items')
+        ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+        ->join('products', 'products.id', '=', 'sale_items.product_id')
+        ->whereBetween('sales.sale_date', [$monthStart, $monthEnd])
+        ->select(
+            'products.name',
+            'products.size',
+            DB::raw('SUM(sale_items.quantity) as total_quantity'),
+            DB::raw('SUM(sale_items.total_price) as total_amount')
+        )
+        ->groupBy('products.id', 'products.name', 'products.size')
+        ->orderByDesc('total_quantity')
+        ->limit(5)
+        ->get();
+
+    $rawMaterialUsage = DB::table('production_items')
+        ->join('productions', 'productions.id', '=', 'production_items.production_id')
+        ->join('raw_materials', 'raw_materials.id', '=', 'production_items.raw_material_id')
+        ->whereBetween('productions.production_date', [$monthStart, $monthEnd])
+        ->select(
+            'raw_materials.name',
+            'raw_materials.unit',
+            DB::raw('SUM(production_items.quantity_used) as total_quantity')
+        )
+        ->groupBy('raw_materials.id', 'raw_materials.name', 'raw_materials.unit')
+        ->orderByDesc('total_quantity')
+        ->limit(5)
+        ->get();
+
+    return view('dashboard', [
+        'periodLabel' => now()->translatedFormat('F Y'),
+        'metrics' => [
+            'sales_today' => $salesToday,
+            'sales_this_month' => $salesThisMonth,
+            'purchases_this_month' => $purchasesThisMonth,
+            'productions_this_month' => $productionsThisMonth,
+            'raw_material_stock' => RawMaterial::sum('quantity'),
+            'product_stock' => Product::sum('stock_quantity'),
+            'low_raw_materials_count' => RawMaterial::where('quantity', '<=', 10)->count(),
+            'low_products_count' => Product::where('stock_quantity', '<=', 5)->count(),
+        ],
+        'recentSales' => Sale::query()
+            ->latest('sale_date')
+            ->latest()
+            ->limit(5)
+            ->get(),
+        'recentPurchases' => Purchase::query()
+            ->with('supplier')
+            ->latest('purchase_date')
+            ->latest()
+            ->limit(5)
+            ->get(),
+        'lowRawMaterials' => RawMaterial::query()
+            ->orderBy('quantity')
+            ->limit(6)
+            ->get(),
+        'lowProducts' => Product::query()
+            ->orderBy('stock_quantity')
+            ->limit(6)
+            ->get(),
+        'topProducts' => $topProducts,
+        'rawMaterialUsage' => $rawMaterialUsage,
+    ]);
 })->middleware(['auth', 'verified', 'can:dashboard.view'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -1095,20 +1177,247 @@ Route::middleware('auth')->group(function () {
             ->route('sales.index')
             ->with('status', 'Sale deleted successfully.');
     })->middleware('can:sales.view')->name('sales.destroy');
-    Route::get('/stock-opname/raw-materials', fn () => $placeholderPage('Stok Opname Bahan Baku', 'Halaman stok opname bahan baku siap kamu lanjutkan berikutnya.'))
-        ->name('stock-opname.raw-materials');
-    Route::get('/stock-opname/products', fn () => $placeholderPage('Stok Opname Product', 'Halaman stok opname product siap kamu lanjutkan berikutnya.'))
-        ->name('stock-opname.products');
-    Route::get('/reports/purchases', fn () => $placeholderPage('Laporan Pembelian Bahan Baku', 'Halaman laporan pembelian bahan baku siap kamu lanjutkan berikutnya.'))
-        ->name('reports.purchases');
-    Route::get('/reports/productions', fn () => $placeholderPage('Laporan Produksi Product', 'Halaman laporan produksi product siap kamu lanjutkan berikutnya.'))
-        ->name('reports.productions');
-    Route::get('/reports/sales', fn () => $placeholderPage('Laporan Penjualan Product', 'Halaman laporan penjualan product siap kamu lanjutkan berikutnya.'))
-        ->name('reports.sales');
-    Route::get('/reports/raw-material-stocks', fn () => $placeholderPage('Laporan Stok Bahan Baku', 'Halaman laporan stok bahan baku siap kamu lanjutkan berikutnya.'))
-        ->name('reports.raw-material-stocks');
-    Route::get('/reports/product-stocks', fn () => $placeholderPage('Laporan Stok Product', 'Halaman laporan stok product siap kamu lanjutkan berikutnya.'))
-        ->name('reports.product-stocks');
+    Route::get('/stock-opname/raw-materials', function (Request $request) {
+        $search = trim((string) $request->string('search'));
+
+        $rawMaterials = RawMaterial::query()
+            ->with(['stockOpnames' => fn ($query) => $query->latest()->limit(1)])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('raw_material_code', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhere('unit', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('raw_material_code')
+            ->paginate(10)
+            ->withQueryString();
+
+        $recentOpnames = RawMaterialStockOpname::query()
+            ->with(['rawMaterial', 'personInCharge'])
+            ->latest('opname_date')
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        $summary = [
+            'materials_count' => RawMaterial::count(),
+            'total_stock' => RawMaterial::sum('quantity'),
+            'adjustment_count' => RawMaterialStockOpname::count(),
+            'last_opname_date' => RawMaterialStockOpname::max('opname_date'),
+        ];
+
+        return view('admin.stock-opname.raw-materials.index', [
+            'rawMaterials' => $rawMaterials,
+            'recentOpnames' => $recentOpnames,
+            'summary' => $summary,
+            'search' => $search,
+        ]);
+    })->name('stock-opname.raw-materials');
+
+    Route::get('/stock-opname/raw-materials/create', function () {
+        return view('admin.stock-opname.raw-materials.create', [
+            'rawMaterials' => RawMaterial::query()->orderBy('raw_material_code')->get(),
+        ]);
+    })->name('stock-opname.raw-materials.create');
+
+    Route::post('/stock-opname/raw-materials', function (Request $request) {
+        if ($request->has('details')) {
+            $validated = $request->validate([
+                'opname_date' => ['required', 'date'],
+                'notes' => ['nullable', 'string'],
+                'details' => ['required', 'array', 'min:1'],
+                'details.*.raw_material_id' => ['required', 'integer', 'exists:raw_materials,id', 'distinct'],
+                'details.*.physical_quantity' => ['required', 'numeric', 'min:0'],
+            ]);
+        } else {
+            $validated = $request->validate([
+                'opname_date' => ['required', 'date'],
+                'raw_material_id' => ['required', 'integer', 'exists:raw_materials,id'],
+                'physical_quantity' => ['required', 'numeric', 'min:0'],
+                'notes' => ['nullable', 'string'],
+            ]);
+
+            $validated['details'] = [[
+                'raw_material_id' => $validated['raw_material_id'],
+                'physical_quantity' => $validated['physical_quantity'],
+            ]];
+        }
+
+        DB::transaction(function () use ($validated) {
+            foreach ($validated['details'] as $detail) {
+                $rawMaterial = RawMaterial::query()
+                    ->whereKey($detail['raw_material_id'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $systemQuantity = round((float) $rawMaterial->quantity, 2);
+                $physicalQuantity = round((float) $detail['physical_quantity'], 2);
+
+                RawMaterialStockOpname::create([
+                    'opname_date' => $validated['opname_date'],
+                    'raw_material_id' => $rawMaterial->id,
+                    'person_in_charge_id' => auth()->id(),
+                    'system_quantity' => $systemQuantity,
+                    'physical_quantity' => $physicalQuantity,
+                    'adjustment_quantity' => round($physicalQuantity - $systemQuantity, 2),
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+
+                $rawMaterial->update([
+                    'quantity' => $physicalQuantity,
+                ]);
+            }
+        });
+
+        return redirect()
+            ->route('stock-opname.raw-materials')
+            ->with('status', 'Stok opname bahan baku berhasil disimpan.');
+    })->name('stock-opname.raw-materials.store');
+    Route::get('/stock-opname/products', function (Request $request) {
+        $search = trim((string) $request->string('search'));
+
+        $products = Product::query()
+            ->with(['stockOpnames' => fn ($query) => $query->latest()->limit(1)])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('size', 'like', "%{$search}%")
+                        ->orWhere('unit', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->orderBy('size')
+            ->paginate(10)
+            ->withQueryString();
+
+        $recentOpnames = ProductStockOpname::query()
+            ->with(['product', 'personInCharge'])
+            ->latest('opname_date')
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        $summary = [
+            'products_count' => Product::count(),
+            'total_stock' => Product::sum('stock_quantity'),
+            'adjustment_count' => ProductStockOpname::count(),
+            'last_opname_date' => ProductStockOpname::max('opname_date'),
+        ];
+
+        return view('admin.stock-opname.products.index', [
+            'products' => $products,
+            'recentOpnames' => $recentOpnames,
+            'summary' => $summary,
+            'search' => $search,
+        ]);
+    })->name('stock-opname.products');
+
+    Route::get('/stock-opname/products/create', function () {
+        return view('admin.stock-opname.products.create', [
+            'products' => Product::query()->orderBy('name')->orderBy('size')->get(),
+        ]);
+    })->name('stock-opname.products.create');
+
+    Route::post('/stock-opname/products', function (Request $request) {
+        if ($request->has('details')) {
+            $validated = $request->validate([
+                'opname_date' => ['required', 'date'],
+                'notes' => ['nullable', 'string'],
+                'details' => ['required', 'array', 'min:1'],
+                'details.*.product_id' => ['required', 'integer', 'exists:products,id', 'distinct'],
+                'details.*.physical_quantity' => ['required', 'integer', 'min:0'],
+            ]);
+        } else {
+            $validated = $request->validate([
+                'opname_date' => ['required', 'date'],
+                'product_id' => ['required', 'integer', 'exists:products,id'],
+                'physical_quantity' => ['required', 'integer', 'min:0'],
+                'notes' => ['nullable', 'string'],
+            ]);
+
+            $validated['details'] = [[
+                'product_id' => $validated['product_id'],
+                'physical_quantity' => $validated['physical_quantity'],
+            ]];
+        }
+
+        DB::transaction(function () use ($validated) {
+            foreach ($validated['details'] as $detail) {
+                $product = Product::query()
+                    ->whereKey($detail['product_id'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $systemQuantity = (int) $product->stock_quantity;
+                $physicalQuantity = (int) $detail['physical_quantity'];
+
+                ProductStockOpname::create([
+                    'opname_date' => $validated['opname_date'],
+                    'product_id' => $product->id,
+                    'person_in_charge_id' => auth()->id(),
+                    'system_quantity' => $systemQuantity,
+                    'physical_quantity' => $physicalQuantity,
+                    'adjustment_quantity' => $physicalQuantity - $systemQuantity,
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+
+                $product->update([
+                    'stock_quantity' => $physicalQuantity,
+                ]);
+            }
+        });
+
+        return redirect()
+            ->route('stock-opname.products')
+            ->with('status', 'Stok opname product berhasil disimpan.');
+    })->name('stock-opname.products.store');
+    Route::get('/reports', function (Request $request) {
+        return view('admin.reports.index', ReportBuilder::build($request));
+    })->name('reports.index');
+
+    Route::get('/reports/view', function (Request $request) {
+        return view('admin.reports.view', ReportBuilder::build($request));
+    })->name('reports.view');
+
+    Route::get('/reports/download/csv', function (Request $request) {
+        $report = ReportBuilder::build($request);
+
+        abort_unless($report['reportType'], 404);
+
+        return response()->streamDownload(function () use ($report) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, [$report['reportLabel']]);
+            fputcsv($handle, ['Periode', ($report['dateFrom'] ?: 'awal data').' s/d '.($report['dateTo'] ?: 'akhir data')]);
+            fputcsv($handle, []);
+
+            foreach ($report['summary'] as $label => $value) {
+                fputcsv($handle, [$label, $value]);
+            }
+
+            fputcsv($handle, []);
+            fputcsv($handle, $report['table']['headers']);
+
+            foreach ($report['table']['rows'] as $row) {
+                fputcsv($handle, $row);
+            }
+
+            fclose($handle);
+        }, ReportBuilder::filename($report, 'csv'), [
+            'Content-Type' => 'text/csv',
+        ]);
+    })->name('reports.download.csv');
+
+    Route::get('/reports/download/pdf', function (Request $request) {
+        $report = ReportBuilder::build($request);
+
+        abort_unless($report['reportType'], 404);
+
+        return response(ReportBuilder::pdf($report), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.ReportBuilder::filename($report, 'pdf').'"',
+        ]);
+    })->name('reports.download.pdf');
 
     Route::get('/user-roles', function (Request $request) {
         $search = trim((string) $request->string('search'));
