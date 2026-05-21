@@ -49,23 +49,7 @@
         </div>
     </div>
 
-    <div
-        x-data="{
-            modalOpen: {{ old('raw_material_id') ? 'true' : 'false' }},
-            selected: {
-                id: '{{ old('raw_material_id') }}',
-                code: '',
-                name: '',
-                unit: '',
-                quantity: '{{ old('system_quantity') }}'
-            },
-            openOpname(material) {
-                this.selected = material;
-                this.modalOpen = true;
-                this.$nextTick(() => this.$refs.physicalQuantity?.focus());
-            }
-        }"
-    >
+    <div>
         <div class="mb-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
             <form method="GET" action="{{ route('stock-opname.raw-materials') }}" class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div class="relative w-full max-w-xl">
@@ -107,9 +91,6 @@
                                 <p><span class="font-medium text-gray-700 dark:text-gray-300">Stok Sistem:</span> {{ number_format((float) $rawMaterial->quantity, 2) }} {{ $rawMaterial->unit }}</p>
                                 <p><span class="font-medium text-gray-700 dark:text-gray-300">Opname Terakhir:</span> {{ $lastOpname ? $lastOpname->opname_date->format('d M Y H:i') : '-' }}</p>
                             </div>
-                            <button type="button" @click="openOpname({ id: '{{ $rawMaterial->id }}', code: '{{ $rawMaterial->raw_material_code }}', name: @js($rawMaterial->name), unit: @js($rawMaterial->unit), quantity: '{{ number_format((float) $rawMaterial->quantity, 2, '.', '') }}' })" class="mt-4 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">
-                                Input Opname
-                            </button>
                         </div>
                     @empty
                         <div class="rounded-2xl border border-gray-200 bg-white px-5 py-10 text-center text-gray-400 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -120,14 +101,13 @@
 
                 <div class="hidden overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] lg:block">
                     <div class="max-w-full overflow-x-auto">
-                        <table class="w-full min-w-[900px]">
+                        <table class="w-full min-w-[760px]">
                             <thead>
                                 <tr class="border-b border-gray-100 dark:border-gray-800">
                                     <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Code</p></th>
                                     <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Raw Material</p></th>
                                     <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Stok Sistem</p></th>
                                     <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Last Opname</p></th>
-                                    <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Action</p></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -155,15 +135,10 @@
                                                 <p class="text-gray-400 text-theme-sm">Belum pernah</p>
                                             @endif
                                         </td>
-                                        <td class="px-5 py-4 sm:px-6">
-                                            <button type="button" @click="openOpname({ id: '{{ $rawMaterial->id }}', code: '{{ $rawMaterial->raw_material_code }}', name: @js($rawMaterial->name), unit: @js($rawMaterial->unit), quantity: '{{ number_format((float) $rawMaterial->quantity, 2, '.', '') }}' })" class="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">
-                                                Input Opname
-                                            </button>
-                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="px-5 py-10 text-center text-gray-400 sm:px-6">Belum ada raw material.</td>
+                                        <td colspan="4" class="px-5 py-10 text-center text-gray-400 sm:px-6">Belum ada raw material.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -203,55 +178,6 @@
                         <p class="text-sm text-gray-400">Belum ada histori stok opname.</p>
                     @endforelse
                 </div>
-            </div>
-        </div>
-
-        <div x-show="modalOpen" x-cloak class="fixed inset-0 z-99999 flex items-center justify-center bg-gray-900/50 p-4">
-            <div @click.outside="modalOpen = false" class="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-medium uppercase tracking-wide text-gray-400" x-text="selected.code"></p>
-                        <h2 class="mt-1 text-lg font-semibold text-gray-800 dark:text-white/90" x-text="selected.name || 'Input Opname'"></h2>
-                    </div>
-                    <button type="button" @click="modalOpen = false" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    </button>
-                </div>
-
-                <form method="POST" action="{{ route('stock-opname.raw-materials.store') }}" class="mt-6 space-y-5">
-                    @csrf
-                    <input type="hidden" name="raw_material_id" :value="selected.id">
-
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <label for="opname_date" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Opname</label>
-                            <input id="opname_date" name="opname_date" type="datetime-local" value="{{ old('opname_date', now()->format('Y-m-d\TH:i')) }}" class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-                        </div>
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Stok Sistem</label>
-                            <input type="text" :value="`${selected.quantity || '0.00'} ${selected.unit || ''}`" readonly class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="physical_quantity" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Stok Fisik</label>
-                        <input x-ref="physicalQuantity" id="physical_quantity" name="physical_quantity" type="number" step="0.01" min="0" value="{{ old('physical_quantity') }}" class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-                    </div>
-
-                    <div>
-                        <label for="notes" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catatan</label>
-                        <textarea id="notes" name="notes" rows="3" class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200" placeholder="Misalnya hasil hitung gudang, bahan rusak, atau koreksi satuan.">{{ old('notes') }}</textarea>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-3">
-                        <button type="button" @click="modalOpen = false" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300">
-                            Cancel
-                        </button>
-                        <button type="submit" class="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">
-                            Simpan Opname
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
