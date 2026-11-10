@@ -20,6 +20,11 @@ class User extends Authenticatable
     use HasFactory, Notifiable, HasRoles;
 
     /**
+     * Role inti aplikasi. Role ini tidak boleh dihapus atau diganti namanya.
+     */
+    public const CORE_ROLES = ['owner', 'admin', 'staff'];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

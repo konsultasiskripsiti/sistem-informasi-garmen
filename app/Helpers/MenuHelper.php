@@ -43,40 +43,40 @@ class MenuHelper
                     [
                        'icon' => 'master-data',
                         'name' => __('app.nav.master_data'),
-                        'subItems' => [
-                            [
+                        'subItems' => array_values(array_filter([
+                            $user?->can('suppliers.view') ? [
                                 'name' => __('app.nav.supplier'),
                                 'path' => route('suppliers.index'),
-                            ],
-                            [
+                            ] : null,
+                            $user?->can('raw-materials.view') ? [
                                 'name' => __('app.nav.raw_materials'),
                                 'path' => route('raw-materials.index'),
-                            ],
-                            [
+                            ] : null,
+                            $user?->can('products.view') ? [
                                 'name' => __('app.nav.product'),
                                 'path' => route('products.index'),
-                            ],
-                        ],
+                            ] : null,
+                        ])),
                     ],
                     [
                        'icon' => 'transactions',
                         'name' => __('app.nav.transactions'),
-                        'subItems' => [
-                            [
+                        'subItems' => array_values(array_filter([
+                            $user?->can('purchases.view') ? [
                                 'name' => __('app.nav.raw_material_purchases'),
                                 'path' => route('purchases.index'),
-                            ],
-                            [
+                            ] : null,
+                            $user?->can('productions.view') ? [
                                 'name' => __('app.nav.product_productions'),
                                 'path' => route('productions.index'),
-                            ],
-                            [
+                            ] : null,
+                            $user?->can('sales.view') ? [
                                 'name' => __('app.nav.product_sales'),
                                 'path' => route('sales.index'),
-                            ],
-                        ],
+                            ] : null,
+                        ])),
                     ],
-                    [
+                    $user?->can('stock-opname.view') ? [
                        'icon' => 'stock-opname',
                         'name' => __('app.nav.stock_opname'),
                         'subItems' => [
@@ -89,25 +89,60 @@ class MenuHelper
                                 'path' => route('stock-opname.products'),
                             ],
                         ],
-                    ],
-                    [
+                    ] : null,
+                    $user?->can('reports.view') ? [
                        'icon' => 'reports',
                         'name' => __('app.nav.reports'),
                         'path' => route('reports.index'),
-                    ],
+                    ] : null,
                 ],
             ],
         ];
 
         $groups[1]['items'] = array_values(array_filter(
             $groups[1]['items'],
-            fn (array $item) => ! isset($item['subItems']) || count($item['subItems']) > 0
+            fn (?array $item) => $item !== null && (! isset($item['subItems']) || count($item['subItems']) > 0)
         ));
 
         return array_values(array_filter(
             $groups,
             fn (array $group) => count($group['items']) > 0
         ));
+    }
+
+    /**
+     * URL menu pertama yang boleh diakses user (dipakai sebagai halaman awal
+     * untuk user tanpa akses dashboard, misalnya staff).
+     */
+    public static function firstAccessiblePath(): ?string
+    {
+        foreach (self::getMenuGroups() as $group) {
+            foreach ($group['items'] as $item) {
+                $path = $item['path'] ?? $item['subItems'][0]['path'] ?? null;
+
+                if ($path !== null) {
+                    return $path;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Cek apakah URL menu sedang aktif. Halaman turunan (create, edit, show)
+     * ikut dianggap aktif, mis. /users/5/edit tetap mengaktifkan menu /users.
+     */
+    public static function isActive(?string $url): bool
+    {
+        if ($url === null || $url === '') {
+            return false;
+        }
+
+        $current = rtrim((string) parse_url(request()->url(), PHP_URL_PATH), '/');
+        $target = rtrim((string) parse_url($url, PHP_URL_PATH), '/');
+
+        return $current === $target || str_starts_with($current, $target.'/');
     }
 
     public static function getIconSvg(string $iconName): string

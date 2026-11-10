@@ -31,8 +31,8 @@ class DatabaseSeeder extends Seeder
         $this->call(SaleSeeder::class);
         $this->call(NotificationSeeder::class);
 
-        if (! $user->hasRole('super-admin')) {
-            $user->assignRole('super-admin');
+        if (! $user->hasRole('admin')) {
+            $user->assignRole('admin');
         }
     }
 }

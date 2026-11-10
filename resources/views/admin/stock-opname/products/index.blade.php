@@ -6,9 +6,11 @@
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Hitung stok fisik product dan simpan koreksi stok dengan histori adjustment.</p>
             </div>
             <div class="flex items-center gap-3">
-                <a href="{{ route('products.index') }}" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300">
-                    Master Product
-                </a>
+                @can('products.view')
+                    <a href="{{ route('products.index') }}" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300">
+                        Master Product
+                    </a>
+                @endcan
                 <a href="{{ route('stock-opname.products.create') }}" class="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600">
                     Input Opname
                 </a>

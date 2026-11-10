@@ -1,5 +1,6 @@
 <?php
 
+use App\Helpers\MenuHelper;
 use App\Http\Controllers\ProfileController;
 use App\Models\Product;
 use App\Models\ProductStockOpname;
@@ -34,6 +35,16 @@ Route::get('/language/{locale}', function (string $locale) {
 })->name('language.switch');
 
 Route::get('/dashboard', function (Request $request) {
+    // Semua redirect setelah login mengarah ke dashboard. User tanpa akses
+    // dashboard (misalnya staff) diarahkan ke menu pertama yang boleh dibuka.
+    if ($request->user()->cannot('dashboard.view')) {
+        $home = MenuHelper::firstAccessiblePath();
+
+        abort_if($home === null, 403);
+
+        return redirect($home);
+    }
+
     $today = now()->toDateString();
     $dateFrom = (string) $request->string('date_from', now()->startOfMonth()->toDateString());
     $dateTo = (string) $request->string('date_to', now()->endOfMonth()->toDateString());
@@ -130,7 +141,7 @@ Route::get('/dashboard', function (Request $request) {
         'topProducts' => $topProducts,
         'rawMaterialUsage' => $rawMaterialUsage,
     ]);
-})->middleware(['auth', 'verified', 'can:dashboard.view'])->name('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     $placeholderPage = function (string $title, string $description) {
@@ -1275,13 +1286,13 @@ Route::middleware('auth')->group(function () {
             'summary' => $summary,
             'search' => $search,
         ]);
-    })->name('stock-opname.raw-materials');
+    })->middleware('can:stock-opname.view')->name('stock-opname.raw-materials');
 
     Route::get('/stock-opname/raw-materials/create', function () {
         return view('admin.stock-opname.raw-materials.create', [
             'rawMaterials' => RawMaterial::query()->orderBy('raw_material_code')->get(),
         ]);
-    })->name('stock-opname.raw-materials.create');
+    })->middleware('can:stock-opname.view')->name('stock-opname.raw-materials.create');
 
     Route::post('/stock-opname/raw-materials', function (Request $request) {
         if ($request->has('details')) {
@@ -1335,7 +1346,7 @@ Route::middleware('auth')->group(function () {
         return redirect()
             ->route('stock-opname.raw-materials')
             ->with('status', 'Stok opname bahan baku berhasil disimpan.');
-    })->name('stock-opname.raw-materials.store');
+    })->middleware('can:stock-opname.view')->name('stock-opname.raw-materials.store');
     Route::get('/stock-opname/products', function (Request $request) {
         $search = trim((string) $request->string('search'));
 
@@ -1373,13 +1384,13 @@ Route::middleware('auth')->group(function () {
             'summary' => $summary,
             'search' => $search,
         ]);
-    })->name('stock-opname.products');
+    })->middleware('can:stock-opname.view')->name('stock-opname.products');
 
     Route::get('/stock-opname/products/create', function () {
         return view('admin.stock-opname.products.create', [
             'products' => Product::query()->orderBy('name')->orderBy('size')->get(),
         ]);
-    })->name('stock-opname.products.create');
+    })->middleware('can:stock-opname.view')->name('stock-opname.products.create');
 
     Route::post('/stock-opname/products', function (Request $request) {
         if ($request->has('details')) {
@@ -1433,14 +1444,14 @@ Route::middleware('auth')->group(function () {
         return redirect()
             ->route('stock-opname.products')
             ->with('status', 'Stok opname product berhasil disimpan.');
-    })->name('stock-opname.products.store');
+    })->middleware('can:stock-opname.view')->name('stock-opname.products.store');
     Route::get('/reports', function (Request $request) {
         return view('admin.reports.index', ReportBuilder::build($request));
-    })->name('reports.index');
+    })->middleware('can:reports.view')->name('reports.index');
 
     Route::get('/reports/view', function (Request $request) {
         return view('admin.reports.view', ReportBuilder::build($request));
-    })->name('reports.view');
+    })->middleware('can:reports.view')->name('reports.view');
 
     Route::get('/reports/download/csv', function (Request $request) {
         $report = ReportBuilder::build($request);
@@ -1468,18 +1479,16 @@ Route::middleware('auth')->group(function () {
         }, ReportBuilder::filename($report, 'csv'), [
             'Content-Type' => 'text/csv',
         ]);
-    })->name('reports.download.csv');
+    })->middleware('can:reports.view')->name('reports.download.csv');
 
     Route::get('/reports/download/pdf', function (Request $request) {
         $report = ReportBuilder::build($request);
 
         abort_unless($report['reportType'], 404);
 
-        return response(ReportBuilder::pdf($report), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.ReportBuilder::filename($report, 'pdf').'"',
-        ]);
-    })->name('reports.download.pdf');
+        return ReportBuilder::pdf($report, $request->user()->name)
+            ->download(ReportBuilder::filename($report, 'pdf'));
+    })->middleware('can:reports.view')->name('reports.download.pdf');
 
     Route::get('/user-roles', function (Request $request) {
         $search = trim((string) $request->string('search'));
@@ -1545,6 +1554,7 @@ Route::middleware('auth')->group(function () {
         return view('admin.roles.edit', [
             'role' => $role,
             'permissions' => Permission::orderBy('name')->get(),
+            'isCoreRole' => in_array($role->name, User::CORE_ROLES, true),
         ]);
     })->middleware('can:roles.view')->name('roles.edit');
 
@@ -1554,6 +1564,12 @@ Route::middleware('auth')->group(function () {
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['exists:permissions,name'],
         ]);
+
+        if (in_array($role->name, User::CORE_ROLES, true) && $validated['name'] !== $role->name) {
+            throw ValidationException::withMessages([
+                'name' => "Nama role {$role->name} tidak dapat diubah.",
+            ]);
+        }
 
         $role->update([
             'name' => $validated['name'],
@@ -1568,10 +1584,10 @@ Route::middleware('auth')->group(function () {
     })->middleware('can:roles.view')->name('roles.update');
 
     Route::delete('/user-roles/{role}', function (Role $role) {
-        if ($role->name === 'super-admin') {
+        if (in_array($role->name, User::CORE_ROLES, true)) {
             return redirect()
                 ->route('roles.index')
-                ->with('status', 'The super-admin role cannot be deleted.');
+                ->with('status', "The {$role->name} role cannot be deleted.");
         }
 
         $role->delete();
@@ -1589,7 +1605,7 @@ Route::middleware('auth')->group(function () {
         ]);
 
         Role::whereIn('id', collect($validated['role_ids'])->values())
-            ->where('name', '!=', 'super-admin')
+            ->whereNotIn('name', User::CORE_ROLES)
             ->delete();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 

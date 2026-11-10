@@ -7,7 +7,12 @@ use App\Models\Production;
 use App\Models\Purchase;
 use App\Models\RawMaterial;
 use App\Models\Sale;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\PDF as DomPdf;
+use Dompdf\Canvas;
+use Dompdf\FontMetrics;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class ReportBuilder
@@ -231,127 +236,48 @@ class ReportBuilder
         return $name.'-'.now()->format('Ymd-His').'.'.$extension;
     }
 
-    public static function pdf(array $report): string
+    public static function periodLabel(array $report): string
     {
-        $tableLines = self::pdfTableLines($report['table']['headers'], $report['table']['rows']);
-        $pages = array_chunk($tableLines, 30);
-        $objects = [];
-        $pageIds = [];
+        $format = fn (string $date, string $fallback) => $date === ''
+            ? $fallback
+            : rescue(fn () => Carbon::parse($date)->translatedFormat('d F Y'), $date, false);
 
-        if ($pages === []) {
-            $pages = [[]];
-        }
+        return $format($report['dateFrom'], __('app.reports.start_data'))
+            .' - '
+            .$format($report['dateTo'], __('app.reports.end_data'));
+    }
 
-        foreach ($pages as $pageIndex => $pageLines) {
-            $content = '';
-            $y = 555;
+    public static function pdf(array $report, string $printedBy): DomPdf
+    {
+        $title = $report['reportLabel'] ?: __('app.reports.title');
+        $period = self::periodLabel($report);
 
-            if ($pageIndex === 0) {
-                $content .= self::pdfText(40, $y, $report['reportLabel'] ?: 'Laporan', 'F2', 16);
-                $y -= 18;
-                $content .= self::pdfText(40, $y, 'Periode: '.($report['dateFrom'] ?: 'awal data').' s/d '.($report['dateTo'] ?: 'akhir data'), 'F1', 9);
-                $y -= 14;
-                $content .= self::pdfText(40, $y, 'Generated: '.now()->format('d M Y H:i'), 'F1', 9);
-                $y -= 24;
+        $pdf = Pdf::loadView('admin.reports.pdf', [
+            ...$report,
+            'title' => $title,
+            'period' => $period,
+            'printedBy' => $printedBy,
+            'printedAt' => now(),
+        ])
+            ->setPaper('a4', 'landscape')
+            ->setOption('isFontSubsettingEnabled', true);
 
-                $summaryLine = collect($report['summary'])
-                    ->map(fn ($value, $label) => $label.': '.$value)
-                    ->implode('     ');
+        // Footer digambar lewat canvas karena dompdf tidak mendukung counter(pages).
+        $pdf->render();
+        $pdf->getDomPDF()->getCanvas()->page_script(function (int $page, int $total, Canvas $canvas, FontMetrics $metrics) use ($title, $period) {
+            $font = $metrics->getFont('DejaVu Sans');
+            $size = 7;
+            $color = [0.42, 0.45, 0.5];
+            $left = 24;
+            $right = $canvas->get_width() - 24;
+            $y = $canvas->get_height() - 26;
+            $pageText = __('app.reports.page_of', ['page' => $page, 'total' => $total]);
 
-                $content .= self::pdfText(40, $y, $summaryLine, 'F2', 9);
-                $y -= 24;
-            } else {
-                $content .= self::pdfText(40, $y, ($report['reportLabel'] ?: 'Laporan').' (lanjutan)', 'F2', 13);
-                $y -= 24;
-            }
-
-            foreach ($pageLines as $index => $line) {
-                $font = $index <= 1 && $pageIndex === 0 ? 'F3' : 'F3';
-                $content .= self::pdfText(40, $y, $line, $font, 7);
-                $y -= 13;
-            }
-
-            $contentId = 6 + ($pageIndex * 2);
-            $pageId = $contentId + 1;
-            $pageIds[] = $pageId;
-            $objects[$contentId] = "<< /Length ".strlen($content)." >>\nstream\n".$content."\nendstream";
-            $objects[$pageId] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents {$contentId} 0 R >>";
-        }
-
-        $objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
-        $objects[2] = '<< /Type /Pages /Kids ['.implode(' ', array_map(fn ($id) => "{$id} 0 R", $pageIds)).'] /Count '.count($pageIds).' >>';
-        $objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
-        $objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>';
-        $objects[5] = '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>';
-        ksort($objects);
-
-        $pdf = "%PDF-1.4\n";
-        $offsets = [0];
-
-        foreach ($objects as $id => $object) {
-            $offsets[$id] = strlen($pdf);
-            $pdf .= "{$id} 0 obj\n{$object}\nendobj\n";
-        }
-
-        $xref = strlen($pdf);
-        $pdf .= "xref\n0 ".(max(array_keys($objects)) + 1)."\n";
-        $pdf .= "0000000000 65535 f \n";
-
-        for ($i = 1; $i <= max(array_keys($objects)); $i++) {
-            $pdf .= sprintf("%010d 00000 n \n", $offsets[$i] ?? 0);
-        }
-
-        $pdf .= "trailer\n<< /Size ".(max(array_keys($objects)) + 1)." /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
+            $canvas->line($left, $y - 6, $right, $y - 6, [0.9, 0.91, 0.92], 0.75);
+            $canvas->text($left, $y, $title.' · '.$period, $font, $size, $color);
+            $canvas->text($right - $metrics->getTextWidth($pageText, $font, $size), $y, $pageText, $font, $size, $color);
+        });
 
         return $pdf;
-    }
-
-    private static function pdfEscape(string $value): string
-    {
-        return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $value);
-    }
-
-    private static function pdfText(int $x, int $y, string $text, string $font, int $size): string
-    {
-        return "BT\n/{$font} {$size} Tf\n{$x} {$y} Td\n(".self::pdfEscape($text).") Tj\nET\n";
-    }
-
-    private static function pdfTableLines(array $headers, Collection $rows): array
-    {
-        if ($headers === []) {
-            return [];
-        }
-
-        $columnCount = count($headers);
-        $availableChars = 132;
-        $width = max(10, intdiv($availableChars - (($columnCount - 1) * 3), $columnCount));
-        $widths = array_fill(0, $columnCount, $width);
-
-        $lines = [];
-        $lines[] = self::pdfTableRow($headers, $widths);
-        $lines[] = implode('-+-', array_map(fn ($columnWidth) => str_repeat('-', $columnWidth), $widths));
-
-        foreach ($rows as $row) {
-            $lines[] = self::pdfTableRow($row, $widths);
-        }
-
-        return $lines;
-    }
-
-    private static function pdfTableRow(array $row, array $widths): string
-    {
-        return collect($row)
-            ->values()
-            ->map(fn ($value, $index) => self::pdfPad((string) $value, $widths[$index] ?? 12))
-            ->implode(' | ');
-    }
-
-    private static function pdfPad(string $value, int $width): string
-    {
-        $value = preg_replace('/\s+/', ' ', trim($value)) ?? '';
-        $value = mb_strimwidth($value, 0, $width, '...');
-        $padding = max(0, $width - mb_strwidth($value));
-
-        return $value.str_repeat(' ', $padding);
     }
 }

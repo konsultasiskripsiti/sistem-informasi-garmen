@@ -88,6 +88,9 @@ return [
         'end_data' => 'end of data',
         'choose_parameters' => 'Choose report parameters',
         'choose_parameters_hint' => 'Choose a report type and period, then click Show Report.',
+        'printed_by' => 'Printed by',
+        'printed_at' => 'Printed at',
+        'page_of' => 'Page :page of :total',
         'types' => [
             'raw-material-purchases' => 'Raw Material Purchases',
             'product-productions' => 'Product Production',
