@@ -88,6 +88,9 @@ return [
         'end_data' => 'akhir data',
         'choose_parameters' => 'Pilih parameter laporan',
         'choose_parameters_hint' => 'Pilih jenis laporan dan periode, lalu klik Tampilkan Laporan.',
+        'printed_by' => 'Dicetak oleh',
+        'printed_at' => 'Dicetak pada',
+        'page_of' => 'Halaman :page dari :total',
         'types' => [
             'raw-material-purchases' => 'Pembelian Raw Material',
             'product-productions' => 'Produksi Product',

@@ -18,7 +18,10 @@
 
             <div>
                 <label for="name" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Role Name</label>
-                <input id="name" name="name" type="text" value="{{ old('name', $role->name) }}" class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                <input id="name" name="name" type="text" value="{{ old('name', $role->name) }}" @readonly($isCoreRole) class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition read-only:cursor-not-allowed read-only:bg-gray-50 read-only:text-gray-500 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:read-only:bg-gray-800">
+                @if ($isCoreRole)
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Role inti (owner, admin, staff) tidak dapat diganti namanya, tetapi permission-nya tetap bisa diatur.</p>
+                @endif
                 @error('name')
                     <p class="mt-2 text-sm text-red-500">{{ $message }}</p>
                 @enderror

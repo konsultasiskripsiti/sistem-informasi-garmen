@@ -44,16 +44,41 @@
                 }
             });
 
+            // Simpan pilihan expand/collapse sidebar desktop supaya tidak
+            // ter-reset setiap kali pindah halaman.
+            const readSidebarPref = () => {
+                try {
+                    return localStorage.getItem('sidebarExpanded') !== 'false';
+                } catch (e) {
+                    return true;
+                }
+            };
+
             Alpine.store('sidebar', {
-                // Initialize based on screen size
-                isExpanded: window.innerWidth >= 1280, // true for desktop, false for mobile
+                // Desktop: ikuti pilihan terakhir user. Mobile: selalu tertutup.
+                isExpanded: window.innerWidth >= 1280 && readSidebarPref(),
                 isMobileOpen: false,
                 isHovered: false,
+
+                restoreForViewport() {
+                    if (window.innerWidth < 1280) {
+                        this.isMobileOpen = false;
+                        this.isExpanded = false;
+                    } else {
+                        this.isMobileOpen = false;
+                        this.isExpanded = readSidebarPref();
+                    }
+                },
 
                 toggleExpanded() {
                     this.isExpanded = !this.isExpanded;
                     // When toggling desktop sidebar, ensure mobile menu is closed
                     this.isMobileOpen = false;
+                    this.isHovered = false;
+
+                    try {
+                        localStorage.setItem('sidebarExpanded', this.isExpanded ? 'true' : 'false');
+                    } catch (e) {}
                 },
 
                 toggleMobileOpen() {
@@ -95,17 +120,16 @@
 
 <body
     x-data="{ 'loaded': true}"
-    x-init="$store.sidebar.isExpanded = window.innerWidth >= 1280;
-    const checkMobile = () => {
-        if (window.innerWidth < 1280) {
-            $store.sidebar.setMobileOpen(false);
-            $store.sidebar.isExpanded = false;
-        } else {
-            $store.sidebar.isMobileOpen = false;
-            $store.sidebar.isExpanded = true;
+    x-init="$store.sidebar.restoreForViewport();
+    let wasDesktop = window.innerWidth >= 1280;
+    window.addEventListener('resize', () => {
+        const isDesktop = window.innerWidth >= 1280;
+        // Hanya reset saat melewati breakpoint, bukan setiap resize kecil.
+        if (isDesktop !== wasDesktop) {
+            wasDesktop = isDesktop;
+            $store.sidebar.restoreForViewport();
         }
-    };
-    window.addEventListener('resize', checkMobile);">
+    });">
 
     {{-- preloader --}}
     <x-common.preloader/>
